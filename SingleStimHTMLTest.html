@@ -1,0 +1,251 @@
+<!doctype html>
+	<head>
+		<title> Simple Reaction Time task </title>
+		<script src = "https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+		<script src = "jspsych-5.0.3/jspsych.js"></script>
+		<script src = "jspsych-5.0.3/plugins/jspsych-text.js"></script>
+		<script src = "jspsych-5.0.3/plugins/jspsych-single-stim.js"> </script>
+		<script src = "jspsych-5.0.3/plugins/jspsych-html.js"> </script>
+		<link href = "jspsych-5.0.3/css/jspsych.css" rel = "stylesheet" type = "css/text"> </link>
+		
+
+	</head>
+	<body>
+		<!-- <div id="peri-left" style="width:500px; height:auto; margin:auto; background-color:red"></div>
+		<div id="peri-right" style="width:auto; height:auto; margin:auto; background-color:blue"></div>
+		<div id="fovea-center" style="width:auto; height:auto; margin:auto; background-color:green"></div> -->
+		<div id='stimuli-target' style='width:auto; height:auto; margin:5% auto;'></div>
+		<canvas class="canvas" id="cueCanvas" style="margin:auto; display:block"></canvas>
+	
+	</body>
+	<script>
+	
+		<!-- ---------------------------------- -->
+		//Canvas Parameters
+		var canvasWidth = window.innerWidth;
+		var canvasHeight = window.innerHeight;
+		var canvasWidthCenter = canvasWidth/2;
+		var canvasHeightCenter = canvasHeight/2;
+		
+		
+		//Initialize the canvas
+		var canvas = document.getElementById("cueCanvas");
+		var cueContext = canvas.getContext("2d");
+		cueContext.canvas.width = canvasWidth;
+		cueContext.canvas.height = canvasHeight;
+		
+		//Stimuli block parameters
+		var stimRectWidth = 200;
+		var stimRectHeight = 200;
+		var gapBetweenStim = 100;
+		
+		//Starting points of stimuli rectagles (top-left corner coordinates)
+		//Left stimuli
+		var xCoordLeftStim = canvasWidthCenter-(stimRectWidth/2)-gapBetweenStim-stimRectWidth;
+		var yCoordLeftStim = canvasHeightCenter-(stimRectHeight/2);
+		//Center stimuli
+		var xCoordCenterStim = canvasWidthCenter-(stimRectWidth/2);
+		var yCoordCenterStim = canvasHeightCenter-(stimRectHeight/2);
+		//Right stimuli
+		var xCoordRightStim = canvasWidthCenter+(stimRectWidth/2)+gapBetweenStim;
+		var yCoordRightStim = canvasHeightCenter-(stimRectHeight/2);
+		
+		//Stimuli parameters
+		var numberOfCircles = 10;
+		var radiusOfCircle = 10;
+		
+		
+		<!-- ---------------------------------- -->
+		
+		//Trial Parameters
+		var numberOfTrials = 10;
+		
+		<!-- -----Generate the HTML content---- -->
+		function drawCanvas(){
+			//cueContext.fillStyle = "cyan";
+			//cueContext.rect(0,0,canvasWidth,canvasHeight);
+			//cueContext.fill();
+			
+			drawRect();
+						
+			
+			var canvasTextURL = cueCanvas.toDataURL();
+			cueContext.clearRect(0,0,canvas.width, canvas.height);
+			return canvasTextURL;
+			}
+		
+		//Draws the 3 rectangles
+		function drawRect(){
+			//For the center rectangle
+			for (var i = 0; i<numberOfCircles; ++i){
+				xCoordCircle = xCoordCenterStim + Math.random()*stimRectWidth;
+				yCoordCircle = yCoordCenterStim + Math.random()*stimRectHeight;
+				
+				cueContext.beginPath();
+				cueContext.arc(xCoordCircle,yCoordCircle,radiusOfCircle,0,2*Math.PI);
+				cueContext.fillStyle = generateColor();
+				cueContext.fill();
+			}
+		
+			
+		}
+		
+		//Generates the color to be filled into the circle
+		function generateColor(){
+			//alert("generateColor called!");
+			var r = Math.floor(Math.random()*255);
+			var g = Math.floor(Math.random()*255);
+			var b = Math.floor(Math.random()*255);
+			var colorString = "rgba(" + r + "," + g + "," + b + ",1)";
+			return colorString;
+		}
+		
+		
+		<!-- ---------------------------------- -->
+		
+		//Make an array of stimuli objects
+		var stimuliArray = [];
+		for (var i = 0; i < numberOfTrials; ++i){
+			var stimuliObject = {
+				stimulus: drawCanvas(),
+				data:{response: 'go' }
+			};
+			stimuliArray.push(stimuliObject);
+		}		
+		
+		
+		
+		
+		<!-- ---------------------------------- -->
+		var welcome_block = {
+			type: 'text',
+			text: 'This is the test for single-stim plugin with canvas'
+		};
+		
+		
+		
+		var instructions_block = {
+			type: "text",
+			text: "<p> These are the instructions </p>" +
+			" Press 'F' when the blue circle comes first. Otherwise, don't press anything and wait for the trial to end." +
+			"Then press a number from 1-4 to rate your confidence.",
+			timing_post_trial: 500
+		};
+		
+		
+		
+		<!--Array of Objects, where each object contains a stimulus as a property (changed to 2 stimuli per object)-->
+		
+		var test_stimuli = [
+			{
+				
+				//the stimulus to be presented
+				stimulus: drawCanvas(),
+				
+				//The correct response
+				data: {response: 'go'},
+				//Set to true if it is html
+				//html: true
+			},
+			{
+				
+				stimulus: ['img/orange.png'],
+				data: {response: 'no-go'}
+			}
+		];
+		
+		// array(?) of the trials, randomly repeated
+		var all_trials = jsPsych.randomization.repeat(test_stimuli, 2);
+		
+		
+		
+		
+		
+		//How much time between the trials
+		//In a function so that it can be used again and again
+		var post_trial_gap = function(){
+			var randomGap = Math.floor(Math.random() *500) + 500;
+			alert("The random gap is");
+			return randomGap;
+		}
+		
+		//test-block object
+		var test_block = {
+			type: 'single-stim',
+			choices: ['F'],
+			//time given to respond
+			timing_response: 500,
+			//time after the trial before the next trial starts
+			timing_post_trial: post_trial_gap,
+			//after trial has finished, add data on whether response was correct or incorrect
+			on_finish: function(data){
+				var correct = false;
+				if (data.response == 'go' && data.rt > -1){
+					correct = true;
+				}
+				else if (data.response == 'no-go' && data.rt == -1){
+					correct = true;
+				}
+				//Add data to the data object on whether response was correct
+				jsPsych.data.addDataToLastTrial({correct: correct});
+			},
+			//timeline for object is the randomized array of trials
+			//timeline: all_trials
+			timeline: stimuliArray
+		};
+		
+		//This function counts the final score at the end
+		//This function returns an object with the properties and values
+		function getSubjectData(){
+		
+			var trials = jsPsych.data.getTrialsOfType('single-stim');
+			
+			var sum_rt = 0;
+			var correct_trial_count = 0;
+			var correct_rt_count = 0;
+			for (var i = 0; i < trials.length; i++){
+				if (trials[i].correct == true) {
+					correct_trial_count++;
+					if(trials[i].rt >-1){
+						sum_rt += trials[i].rt;
+						correct_rt_count++;
+					}
+				}
+			}	
+			//An object is returned
+			return{
+				rt: Math.floor(sum_rt / correct_rt_count),
+				accuracy: Math.floor(correct_trial_count / trials.length * 100)
+			}
+		}
+		
+		//This is a text block 
+		var debrief_block = {
+			type: "text",
+			//Seems to be an inline function
+			text: function(){
+				var subject_data = getSubjectData();
+				return "<p> You responded correctly on " + subject_data.accuracy +
+				"% of the trials. </p> <p> Your average response time was <strong>" +
+				subject_data.rt + "ms </strong>. Press any key to complete the experiment"
+				+ ". Thank you! </p>";
+			}
+		};
+		
+		//Push into the timeline array
+		var timeline = [];
+		timeline.push(welcome_block); <!-- This is push and not pushback -->
+		timeline.push(instructions_block);
+		timeline.push(test_block);
+		timeline.push(debrief_block);
+		
+		//This is where the thing actually plays
+		jsPsych.init({
+			timeline: timeline,
+			on_finish: function(){
+				jsPsych.data.displayData();
+			}
+		});
+		
+	</script>
+</html>
