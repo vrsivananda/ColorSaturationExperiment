@@ -19,6 +19,9 @@
 	
 	</body>
 	<script>
+		
+		
+		var filename = "SivaTestResults.csv";
 	
 		<!-- ---------------------------------- -->
 		//Canvas Parameters
@@ -51,19 +54,21 @@
 		var yCoordRightStim = canvasHeightCenter-(stimRectHeight/2);
 		
 		//Stimuli parameters
-		var numberOfCirclesCenterCondition1 = 5;
-		var numberOfCirclesPeripheryCondition1 = 5;
+		var numberOfCirclesCenterCondition1 = 8;
+		var numberOfCirclesPeripheryCondition1 = 8;
 		
-		var numberOfCirclesCenterCondition2 = 5;
-		var numberOfCirclesPeripheryCondition2 = 4;
+		//Supposed to have a response in condition 2, therefore more circles in periphery
+		var numberOfCirclesCenterCondition2 = 8;
+		var numberOfCirclesPeripheryCondition2 = 9;
 		
-		var radiusOfCircle = 10;
+		var radiusOfCircle = 15;
+		var counterLimit = 1000;
 		
 		
 		<!-- ---------------------------------- -->
 		
 		//Trial Parameters
-		var numberOfTrials = 5;
+		var numberOfTrials = 10;
 		
 		//Time between the trials (in ms)
 		var minPostTrialTime = 0;
@@ -72,9 +77,6 @@
 		
 		<!-- -----Generate the HTML content---- -->
 		function drawCanvas(centerNum, peripheryNum){
-			//cueContext.fillStyle = "cyan";
-			//cueContext.rect(0,0,canvasWidth,canvasHeight);
-			//cueContext.fill();
 			
 			drawRect(centerNum, peripheryNum);
 						
@@ -82,14 +84,51 @@
 			var canvasTextURL = cueCanvas.toDataURL();
 			cueContext.clearRect(0,0,canvas.width, canvas.height);
 			return canvasTextURL;
-			}
+		}
 		
 		//Draws the 3 rectangles
 		function drawRect(centerNum, peripheryNum){
+		
+			//Create an array of xCoordnates and yCoordinates that do not overlap
+			var centerArraysXY = createCoordinates(centerNum);
+			//Split the arrays up to x and y coords
+			var xCoordCenterArray = centerArraysXY[0];
+			var yCoordCenterArray = centerArraysXY[1];
+			
+			//Adjust for the location on the screen
+			//Center
+			xCoordCenterArray = addValueToArray(xCoordCenterArray,xCoordCenterStim);
+			yCoordCenterArray = addValueToArray(yCoordCenterArray,yCoordCenterStim);
+
+			
+			//Periphery
+			var peripheryArraysXY = createCoordinates(peripheryNum);
+
+			
+			//Left
+			var xCoordLeftArray = peripheryArraysXY[0];
+			var yCoordLeftArray = peripheryArraysXY[1];
+
+			//Right
+			var xCoordRightArray = peripheryArraysXY[0];
+			var yCoordRightArray = peripheryArraysXY[1];
+			
+			//Left adjustment
+			xCoordLeftArray = addValueToArray(xCoordLeftArray,xCoordLeftStim);
+			yCoordLeftArray = addValueToArray(yCoordLeftArray,yCoordLeftStim);
+
+			
+			//Right adjustment
+			xCoordRightArray = addValueToArray(xCoordRightArray,xCoordRightStim);
+			yCoordRightArray = addValueToArray(yCoordRightArray,yCoordRightStim);
+
+			
+			//FILLING IN THE CANVAS
+			
 			//For the center rectangle
 			for (var i = 0; i<centerNum; ++i){
-				var xCoordCircle = xCoordCenterStim + Math.random()*stimRectWidth;
-				var yCoordCircle = yCoordCenterStim + Math.random()*stimRectHeight;
+				var xCoordCircle = xCoordCenterArray[i];
+				var yCoordCircle = yCoordCenterArray[i];
 				
 				cueContext.beginPath();
 				cueContext.arc(xCoordCircle,yCoordCircle,radiusOfCircle,0,2*Math.PI);
@@ -101,13 +140,12 @@
 			for (var i = 0; i<peripheryNum; ++i){
 				
 				//Set random parameters
-				var WidthOffset = Math.random()*stimRectWidth;
-				var HeightOffset = Math.random()*stimRectHeight;
 				var color = generateColor();
 				
 				//Left
-				var xCoordCircle = xCoordLeftStim + WidthOffset;
-				var yCoordCircle = yCoordLeftStim + HeightOffset;
+				var xCoordCircle = xCoordLeftArray[i];
+				var yCoordCircle = yCoordLeftArray[i];
+				
 				
 				cueContext.beginPath();
 				cueContext.arc(xCoordCircle,yCoordCircle,radiusOfCircle,0,2*Math.PI);
@@ -115,8 +153,8 @@
 				cueContext.fill();
 				
 				//Right
-				var xCoordCircle = xCoordRightStim + WidthOffset;
-				var yCoordCircle = yCoordRightStim + HeightOffset;
+				var xCoordCircle = xCoordRightArray[i];
+				var yCoordCircle = yCoordRightArray[i];
 				
 				cueContext.beginPath();
 				cueContext.arc(xCoordCircle,yCoordCircle,radiusOfCircle,0,2*Math.PI);
@@ -124,6 +162,64 @@
 				cueContext.fill();
 			}
 			
+		}
+		
+		
+		//Create an array of xCoordnates and yCoordinates that do not overlap
+		function createCoordinates(num){
+			var xCoordArray = [];
+			var yCoordArray = [];
+			
+			//push the first coordinate into the array
+			xCoordArray.push(Math.floor(Math.random()*stimRectWidth));
+			yCoordArray.push(Math.floor(Math.random()*stimRectHeight));
+			
+			//One iteration for each addition
+			for (var i = 1; i<num; ++i){
+				xCoordCurrent = Math.floor(Math.random()*stimRectWidth);
+				yCoordCurrent = Math.floor(Math.random()*stimRectHeight);
+				
+				//One iteration for each existing value (to check if it satisfies the condition)
+				for (var j = 0; j < xCoordArray.length; ++j){
+				
+					//Counter to alert for improbable case where the system iterates too many times and cannot find a solution
+					var counter = 0;
+			
+					//While they are too close together, generate another number.
+					while( (Math.abs(xCoordArray[j] - xCoordCurrent)<(radiusOfCircle*2)) && (Math.abs(yCoordArray[j] - yCoordCurrent)<(radiusOfCircle*2)) ){
+						xCoordCurrent = Math.floor(Math.random()*stimRectWidth);
+						yCoordCurrent = Math.floor(Math.random()*stimRectHeight);
+						
+						++counter;
+						console.log("counter: " + counter);
+						console.log("Iteration number i: " + i);
+						
+						//reset j so that it compares with the array starting from the beginning
+						j = 0;
+						
+						if (counter > counterLimit){
+							alert("Loop to find coordinate iterated over 1000 times. Suggest changing parameters to make dots fit into the rectangles.");
+						}
+					}
+				}
+				
+				//If the points pass the test, then push it into the array
+				xCoordArray.push(xCoordCurrent);
+				yCoordArray.push(yCoordCurrent);
+			}
+		
+		//returns an array of 2 arrays
+		return [xCoordArray,yCoordArray];
+		}
+		
+		//Function to add value to every element in the array (same as forEach, but by reference)
+		function addValueToArray(array,value){
+			var newArray = [];
+			for( var i = 0; i < array.length; ++i){
+				newValue = array[i]+value;
+				newArray.push(newValue);
+			}
+			return newArray;
 		}
 		
 		//Generates the color to be filled into the circle
@@ -209,9 +305,7 @@
 		//How much time between the trials
 		//In a function so that it can be used again and again
 		var post_trial_gap = function(){
-			var randomGap = Math.floor(Math.random() *(maxPostTrialTime-minPostTrialTime)) + minPostTrialTime;
-			alert("The random gap is");
-			return randomGap;
+			return Math.floor(Math.random() *(maxPostTrialTime-minPostTrialTime)) + minPostTrialTime;
 		}
 		
 		//test-block object
@@ -288,6 +382,7 @@
 		jsPsych.init({
 			timeline: timeline,
 			on_finish: function(){
+				//jsPsych.data.localSave(filename, 'csv');
 				jsPsych.data.displayData();
 			}
 		});
